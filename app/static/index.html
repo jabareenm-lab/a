@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מהנדס שואל</title>
+<style>
+:root{
+  --bg:#f5f6f8; --panel:#ffffff; --ink:#1d2330; --muted:#667085; --line:#e3e6eb;
+  --accent:#0b5cad; --accent-soft:#e8f1fb; --user:#0b5cad; --user-ink:#fff; --warn:#a15c00; --err:#b42318;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#12151b; --panel:#1b2029; --ink:#e7eaf0; --muted:#98a2b3; --line:#2b3240;
+        --accent:#5aa2ef; --accent-soft:#1d2b3d; --user:#2563a8; --user-ink:#fff; --warn:#f0b35a; --err:#f97066;}
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.65 "Segoe UI","Heebo","Arial",sans-serif;display:flex}
+aside{width:300px;flex:none;border-left:1px solid var(--line);background:var(--panel);padding:16px;overflow:auto;display:flex;flex-direction:column;gap:14px}
+main{flex:1;display:flex;flex-direction:column;min-width:0}
+h1{font-size:20px;margin:0}
+.sub{color:var(--muted);font-size:13px}
+.card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
+.card b{font-weight:600}
+.row{display:flex;justify-content:space-between;gap:8px}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button:disabled{opacity:.5;cursor:default}
+#chat{flex:1;overflow:auto;padding:24px clamp(16px,4vw,56px)}
+.msg{max-width:900px;margin:0 auto 18px}
+.bubble{padding:12px 16px;border-radius:12px;background:var(--panel);border:1px solid var(--line);overflow-wrap:anywhere}
+.user .bubble{background:var(--user);color:var(--user-ink);border-color:var(--user);margin-left:auto;max-width:75%;width:fit-content;white-space:pre-wrap}
+.status{color:var(--muted);font-size:13px;margin:6px 4px 0;display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:p 1s infinite alternate}
+@keyframes p{to{opacity:.25}}
+.bubble table{border-collapse:collapse;margin:8px 0;font-size:14px;display:block;overflow-x:auto}
+.bubble th,.bubble td{border:1px solid var(--line);padding:4px 8px;text-align:right}
+.bubble th{background:var(--accent-soft)}
+.bubble h2,.bubble h3,.bubble h4{margin:10px 0 4px;font-size:16px}
+.bubble p{margin:6px 0}
+.bubble ul,.bubble ol{margin:6px 0;padding-right:22px}
+.bubble code{background:var(--accent-soft);padding:1px 4px;border-radius:4px}
+.sources{margin-top:8px;border-top:1px dashed var(--line);padding-top:8px;font-size:13px}
+.sources summary{cursor:pointer;color:var(--muted)}
+.src{margin:6px 0}
+.src a{color:var(--accent);text-decoration:none}
+.src a:hover{text-decoration:underline}
+.tag{font-size:11px;border:1px solid var(--line);border-radius:6px;padding:0 5px;color:var(--muted);margin-right:4px}
+.error{color:var(--err)}
+.warn{color:var(--warn)}
+form{border-top:1px solid var(--line);background:var(--panel);padding:12px clamp(16px,4vw,56px);display:flex;gap:10px}
+textarea{flex:1;resize:none;font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);min-height:48px;max-height:200px}
+.empty{max-width:700px;margin:10vh auto;text-align:center;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px}
+.chips button{font-size:13px}
+#problems{max-height:180px;overflow:auto;margin-top:6px}
+@media (max-width:800px){ body{flex-direction:column} aside{width:auto;border-left:0;border-bottom:1px solid var(--line);max-height:38vh} }
+</style>
+</head>
+<body>
+<aside>
+  <div>
+    <h1>מהנדס שואל</h1>
+    <div class="sub">שאלות מקצועיות מול ספריית ההנחיות של המשרד</div>
+  </div>
+  <button id="newChat">שיחה חדשה</button>
+  <div class="card" id="statusCard">טוען סטטוס…</div>
+  <button id="reindex">רענון ספרייה ואינדקס</button>
+  <div class="card">
+    <b>חיפוש מהיר במסמכים</b>
+    <input id="quick" placeholder="מילת חיפוש…" style="width:100%;margin-top:6px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit">
+    <div id="quickRes"></div>
+  </div>
+</aside>
+<main>
+  <div id="chat">
+    <div class="empty" id="empty">
+      <h2>במה אפשר לעזור?</h2>
+      <div>התשובות נשלפות מתוך מסמכי ההנחיות שבספרייה, עם הפניה למסמך ולעמוד.</div>
+      <div class="chips">
+        <button>מה הרוחב המינימלי של נתיב תנועה בדרך עירונית?</button>
+        <button>מה הדרישות לתכנון מעגל תנועה בשטח עירוני?</button>
+        <button>מתי נדרש ניתוח רמזור בצומת?</button>
+        <button>מה מרחק הראות הנדרש לעצירה במהירות תכן 50 קמ"ש?</button>
+      </div>
+    </div>
+  </div>
+  <form id="form">
+    <textarea id="q" rows="1" placeholder="כתבו שאלה… (Enter לשליחה, Shift+Enter לשורה חדשה)"></textarea>
+    <button class="primary" id="send" type="submit">שליחה</button>
+  </form>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const chat = $('#chat');
+let history = [];
+let busy = false;
+
+function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+// Markdown מינימלי: כותרות, מודגש, רשימות, טבלאות, קוד
+function md(src){
+  const lines = esc(src).split('\n'); let html='', i=0;
+  const inline = t => t.replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<i>$2</i>');
+  while(i<lines.length){
+    let l=lines[i];
+    if(/^\s*\|.*\|\s*$/.test(l) && i+1<lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i+1])){
+      const row = r => r.trim().replace(/^\||\|$/g,'').split('|').map(c=>inline(c.trim()));
+      html+='<table><thead><tr>'+row(l).map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
+      i+=2; while(i<lines.length && /^\s*\|/.test(lines[i])){html+='<tr>'+row(lines[i]).map(c=>`<td>${c}</td>`).join('')+'</tr>';i++}
+      html+='</tbody></table>'; continue;
+    }
+    let m;
+    if((m=l.match(/^(#{1,4})\s+(.*)/))){const n=Math.min(4,m[1].length+1);html+=`<h${n}>${inline(m[2])}</h${n}>`;i++;continue}
+    if(/^\s*([-*•]|\d+[.)])\s+/.test(l)){
+      const ordered=/^\s*\d/.test(l); html+=ordered?'<ol>':'<ul>';
+      while(i<lines.length && /^\s*([-*•]|\d+[.)])\s+/.test(lines[i])){html+='<li>'+inline(lines[i].replace(/^\s*([-*•]|\d+[.)])\s+/,''))+'</li>';i++}
+      html+=ordered?'</ol>':'</ul>'; continue;
+    }
+    if(!l.trim()){i++;continue}
+    let p=[l]; i++; while(i<lines.length && lines[i].trim() && !/^(#{1,4}\s|\s*\||\s*([-*•]|\d+[.)])\s)/.test(lines[i])){p.push(lines[i]);i++}
+    html+='<p>'+inline(p.join('<br>'))+'</p>';
+  }
+  return html;
+}
+
+function addMsg(role, text){
+  $('#empty')?.remove();
+  const el=document.createElement('div'); el.className='msg '+role;
+  el.innerHTML='<div class="bubble"></div>';
+  const b=el.querySelector('.bubble');
+  if(role==='user') b.textContent=text; else b.innerHTML=md(text||'');
+  chat.appendChild(el); chat.scrollTop=chat.scrollHeight; return el;
+}
+
+function fileLink(s,p){
+  if(s.web_url) return s.web_url;
+  return `/api/file/${s.doc_id}` + (s.is_pdf && p ? `#page=${p}` : '');
+}
+
+function renderSources(el, sources){
+  if(!sources?.length) return;
+  const box=document.createElement('details'); box.className='sources'; box.open=true;
+  box.innerHTML=`<summary>מסמכים שנבדקו (${sources.length})</summary>`;
+  for(const s of sources){
+    const d=document.createElement('div'); d.className='src';
+    const pages=s.pages.map(p=>`<a href="${esc(fileLink(s,p.page))}" target="_blank">${esc(p.location)}</a>`).join(' · ');
+    d.innerHTML=`<a href="${esc(fileLink(s, s.pages[0]?.page))}" target="_blank"><b>${esc(s.title)}</b></a>`+
+      (s.read?'<span class="tag">נקרא</span>':'<span class="tag">תוצאת חיפוש</span>')+
+      (s.folder?` <span class="sub">${esc(s.folder)}</span>`:'')+`<div class="sub">${pages}</div>`;
+    box.appendChild(d);
+  }
+  el.querySelector('.bubble').appendChild(box);
+}
+
+async function ask(question){
+  if(busy||!question.trim()) return;
+  busy=true; $('#send').disabled=true;
+  addMsg('user', question);
+  const el=addMsg('assistant',''); const bubble=el.querySelector('.bubble');
+  const st=document.createElement('div'); st.className='status'; st.innerHTML='<span class="dot"></span><span>מתחיל…</span>';
+  el.appendChild(st);
+  let text='', sources=[], failed=false;
+  try{
+    const res=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,history})});
+    const reader=res.body.getReader(); const dec=new TextDecoder(); let buf='';
+    while(true){
+      const {value,done}=await reader.read(); if(done) break;
+      buf+=dec.decode(value,{stream:true});
+      let idx; while((idx=buf.indexOf('\n\n'))>=0){
+        const raw=buf.slice(0,idx); buf=buf.slice(idx+2);
+        if(!raw.startsWith('data: ')) continue;
+        const ev=JSON.parse(raw.slice(6));
+        if(ev.type==='delta'){text+=ev.text; bubble.innerHTML=md(text); st.lastChild.textContent='כותב תשובה…'}
+        else if(ev.type==='discard_draft'){text=''; bubble.innerHTML=''}
+        else if(ev.type==='status'){st.lastChild.textContent=ev.text}
+        else if(ev.type==='sources'){sources=ev.sources}
+        else if(ev.type==='error'){failed=true; bubble.innerHTML+=`<p class="error">${esc(ev.message)}</p>`}
+        chat.scrollTop=chat.scrollHeight;
+      }
+    }
+  }catch(e){failed=true; bubble.innerHTML+=`<p class="error">שגיאת תקשורת: ${esc(String(e))}</p>`}
+  st.remove(); renderSources(el, sources);
+  if(text && !failed){ history.push({role:'user',content:question},{role:'assistant',content:text}); }
+  busy=false; $('#send').disabled=false; $('#q').focus();
+}
+
+$('#form').addEventListener('submit',e=>{e.preventDefault(); const q=$('#q').value; $('#q').value=''; autosize(); ask(q)});
+$('#q').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('#form').requestSubmit()}});
+function autosize(){const t=$('#q'); t.style.height='auto'; t.style.height=Math.min(200,t.scrollHeight)+'px'}
+$('#q').addEventListener('input',autosize);
+document.querySelectorAll('.chips button').forEach(b=>b.addEventListener('click',()=>ask(b.textContent)));
+$('#newChat').addEventListener('click',()=>{history=[]; chat.innerHTML=''; location.reload()});
+
+async function loadStatus(){
+  try{
+    const s=await (await fetch('/api/status')).json();
+    const when=s.last_indexed?new Date(s.last_indexed*1000).toLocaleString('he-IL'):'טרם בוצע';
+    let h=`<div class="row"><span>מסמכים באינדקס</span><b>${s.ok}</b></div>`+
+          `<div class="row"><span>קטעים</span><b>${s.chunks}</b></div>`+
+          `<div class="row"><span>עדכון אחרון</span><span>${when}</span></div>`+
+          `<div class="row"><span>SharePoint</span><span>${s.sharepoint?'מחובר':'לא מוגדר'}</span></div>`;
+    if(s.progress?.running) h+=`<div class="warn">מאנדקס… ${s.progress.done}/${s.progress.total} ${esc(s.progress.current||'')}</div>`;
+    if(!s.api_key) h+=`<div class="error">חסר מפתח ANTHROPIC_API_KEY בקובץ .env</div>`;
+    if(!s.folders.length) h+=`<div class="error">לא הוגדרה תיקיית הנחיות ב-config.yaml</div>`;
+    const sperr=s.last_refresh?.sharepoint_error; if(sperr) h+=`<div class="error">SharePoint: ${esc(sperr)}</div>`;
+    if(s.no_text||s.errors){
+      h+=`<details><summary class="warn">${s.no_text} ללא טקסט (סרוקים - דורשים OCR), ${s.errors} שגיאות</summary><div id="problems">`+
+        s.problems.map(p=>`<div class="sub">${esc(p.title)}${p.error?' - '+esc(p.error):''}</div>`).join('')+`</div></details>`;
+    }
+    $('#statusCard').innerHTML=h;
+    $('#reindex').disabled=!!s.progress?.running;
+    setTimeout(loadStatus, s.progress?.running?2000:30000);
+  }catch(e){ $('#statusCard').innerHTML='<span class="error">השרת לא זמין</span>'; setTimeout(loadStatus,5000) }
+}
+$('#reindex').addEventListener('click',async()=>{await fetch('/api/reindex',{method:'POST'}); setTimeout(loadStatus,500)});
+
+let qt; $('#quick').addEventListener('input',e=>{clearTimeout(qt); qt=setTimeout(async()=>{
+  const v=e.target.value.trim(); if(!v){$('#quickRes').innerHTML='';return}
+  const r=await (await fetch('/api/search?limit=8&q='+encodeURIComponent(v))).json();
+  $('#quickRes').innerHTML=r.length?r.map(h=>`<div class="src"><a target="_blank" href="/api/file/${h.doc_id}#page=${h.page}">${esc(h.title)}</a> <span class="sub">${esc(h.location)}</span></div>`).join(''):'<div class="sub">אין תוצאות</div>';
+},300)});
+loadStatus();
+</script>
+</body>
+</html>
