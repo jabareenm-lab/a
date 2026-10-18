@@ -1,0 +1,37 @@
+# העתיקו לקובץ config.yaml ועדכנו. המפתח של Anthropic נשמר בקובץ .env (לא כאן).
+
+anthropic:
+  model: claude-opus-5-5
+  effort: high            # low | medium | high | xhigh | max  (יותר = יסודי ואיטי/יקר יותר)
+  max_tool_rounds: 10     # כמה סבבי חיפוש/קריאה מותרים לכל שאלה
+
+sources:
+  # תיקיות במחשב. הדרך הפשוטה ל-SharePoint: בספרייה ב-SharePoint לוחצים "סנכרן" (Sync)
+  # והתיקייה מופיעה ב-OneDrive במחשב - מוסיפים את הנתיב שלה כאן.
+  local_folders:
+    - "C:/Users/USERNAME/MJ Traffic Engineering/Office - Documents/הנחיות"
+
+  extensions: [".pdf", ".docx", ".xlsx", ".txt", ".md"]
+
+  # חיבור ישיר ל-SharePoint דרך Microsoft Graph (במקום/בנוסף לסנכרון OneDrive).
+  sharepoint:
+    enabled: false
+    tenant_id: ""           # Directory (tenant) ID מ-Entra ID
+    client_id: ""           # Application (client) ID של רישום האפליקציה
+    auth: device_code       # device_code (משתמש אישי) | client_secret (אפליקציה, דורש IT)
+    # הכי פשוט: להדביק קישור לתיקייה כפי שהוא מופיע בדפדפן / "העתק קישור"
+    folder_url: ""
+    # או לחלופין:
+    site_url: ""            # https://TENANT.sharepoint.com/sites/SITE
+    drive_name: ""          # ריק = "Documents"/"מסמכים" הראשית
+    folder_path: ""         # למשל: הנחיות/משרד התחבורה
+
+index:
+  db_path: data/index.sqlite
+  cache_dir: data/sharepoint_cache
+
+server:
+  host: 127.0.0.1         # 0.0.0.0 כדי לאפשר גישה מעמדות אחרות ברשת המשרד
+  port: 8765
+
+# system_prompt: prompts/system_he.md   # אפשר להחליף בהנחיות מפרויקט ה-Cowork
